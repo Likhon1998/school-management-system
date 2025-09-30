@@ -1,0 +1,159 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\Models\UserProfile;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+class UserController extends Controller
+{
+    // Show all users
+    public function index()
+    {
+        $users = User::with('profile')->paginate(10);
+        return view('users.index', compact('users'));
+    }
+
+    // Show create form
+    public function create()
+    {
+        return view('users.create');
+    }
+
+    // Store new user
+    public function store(Request $request)
+    {
+        $request->validate([
+            'username' => 'required|unique:users,username|max:50',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:6|confirmed',
+            'role' => 'required|in:admin,principal,teacher,student,parent,accountant',
+            'status' => 'required|in:active,inactive',
+            'first_name' => 'required|max:50',
+            'last_name' => 'required|max:50',
+            'phone' => 'nullable|max:15',
+            'address' => 'nullable',
+            'date_of_birth' => 'nullable|date',
+            'gender' => 'nullable|in:male,female,other',
+            'national_id' => 'nullable|max:20',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        // Create user
+        $user = User::create([
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'status' => $request->status,
+        ]);
+
+        // Handle photo upload
+        $photoName = null;
+        if ($request->hasFile('photo')) {
+            $photoName = time() . '_' . $request->photo->getClientOriginalName();
+            $request->photo->storeAs('public/profiles', $photoName); // store in storage/app/public/profiles
+        }
+
+        // Create profile
+        UserProfile::create([
+            'user_id' => $user->id,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'date_of_birth' => $request->date_of_birth,
+            'gender' => $request->gender,
+            'national_id' => $request->national_id,
+            'photo' => $photoName, // only filename
+        ]);
+
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
+    }
+
+    // Show edit form
+    public function edit(User $user)
+    {
+        $user->load('profile');
+        return view('users.edit', compact('user'));
+    }
+
+    // Update user
+    public function update(Request $request, User $user)
+    {
+        $request->validate([
+            'username' => 'required|unique:users,username,'.$user->id.'|max:50',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'password' => 'nullable|min:6|confirmed',
+            'role' => 'required|in:admin,principal,teacher,student,parent,accountant',
+            'status' => 'required|in:active,inactive',
+            'first_name' => 'required|max:50',
+            'last_name' => 'required|max:50',
+            'phone' => 'nullable|max:15',
+            'address' => 'nullable',
+            'date_of_birth' => 'nullable|date',
+            'gender' => 'nullable|in:male,female,other',
+            'national_id' => 'nullable|max:20',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $user->update([
+            'username' => $request->username,
+            'email' => $request->email,
+            'role' => $request->role,
+            'status' => $request->status,
+        ]);
+
+        if($request->password){
+            $user->update(['password' => Hash::make($request->password)]);
+        }
+
+        // Handle photo upload
+        $photoName = $user->profile->photo; // keep old if not changed
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($user->profile->photo && file_exists(storage_path('app/public/profiles/'.$user->profile->photo))) {
+                unlink(storage_path('app/public/profiles/'.$user->profile->photo));
+            }
+
+            $photoName = time() . '_' . $request->photo->getClientOriginalName();
+            $request->photo->storeAs('public/profiles', $photoName); // store in storage/app/public/profiles
+        }
+
+        $user->profile->update([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'date_of_birth' => $request->date_of_birth,
+            'gender' => $request->gender,
+            'national_id' => $request->national_id,
+            'photo' => $photoName, // only filename
+        ]);
+
+        return redirect()->route('users.index')->with('success', 'User updated successfully.');
+    }
+
+    // Delete user
+    public function destroy(User $user)
+    {
+        // Delete photo if exists
+        if ($user->profile->photo && file_exists(storage_path('app/public/profiles/'.$user->profile->photo))) {
+            unlink(storage_path('app/public/profiles/'.$user->profile->photo));
+        }
+
+        $user->profile->delete();
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+    }
+
+    // Show single user
+    public function show($id)
+    {
+        $user = User::with('profile')->findOrFail($id);
+        return view('users.show', compact('user'));
+    }
+}
