@@ -41,7 +41,6 @@ class UserController extends Controller
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Create user
         $user = User::create([
             'username' => $request->username,
             'email' => $request->email,
@@ -50,7 +49,6 @@ class UserController extends Controller
             'status' => $request->status,
         ]);
 
-        // Handle photo upload
         $photoName = null;
         if ($request->hasFile('photo')) {
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
@@ -111,15 +109,15 @@ class UserController extends Controller
         }
 
         // Handle photo upload
-        $photoName = $user->profile->photo; // keep old if not changed
+        $photoName = $user->profile->photo; 
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
+            
             if ($user->profile->photo && file_exists(storage_path('app/public/profiles/'.$user->profile->photo))) {
                 unlink(storage_path('app/public/profiles/'.$user->profile->photo));
             }
 
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
-            $request->photo->storeAs('public/profiles', $photoName); // store in storage/app/public/profiles
+            $request->photo->storeAs('public/profiles', $photoName); 
         }
 
         $user->profile->update([
