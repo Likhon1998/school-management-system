@@ -153,6 +153,14 @@
                             <span class="ml-2">Student Fees</span>
                         </a>            
                     </li>
+                   {{-- <li>
+                        <a href="{{ route('student.dashboardFees') }}" 
+                        class="flex items-center px-4 py-2 rounded-lg hover:bg-green-200 transition-colors duration-200 {{ request()->routeIs('student.dashboard_fees') ? 'bg-green-200 font-semibold' : '' }}">
+                            <i data-feather="dollar-sign" class="w-4 h-4"></i>
+                            <span class="ml-2">My Fees</span>
+                        </a>            
+                    </li> --}}
+
                     <li>
                         <a href="{{ route('expenses.index') }}" class="flex items-center px-4 py-2 rounded-lg hover:bg-green-200 transition-colors duration-200 {{ request()->routeIs('expenses.*') ? 'bg-green-200 font-semibold' : '' }}">
                             <i data-feather="archive" class="w-4 h-4"></i>

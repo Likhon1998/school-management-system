@@ -1,84 +1,77 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                My Fees
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <h2 class="font-semibold text-lg text-gray-700 leading-tight">
+                Student Fees
             </h2>
+            <div class="flex gap-2">
+                <a href="{{ route('fee_structures.index') }}" 
+                   class="px-3 py-1.5 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm">
+                   ← Back to Fee Structures
+                </a>
+                <a href="{{ route('student_fees.index') }}" 
+                   class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                   Payment History
+                </a>
+            </div>
         </div>
     </x-slot>
 
-    <div class="py-6">
+    <div class="py-4">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-
             @if(session('success'))
-                <div class="mb-4 p-4 bg-green-100 text-green-800 rounded shadow">
+                <div class="mb-3 p-3 bg-green-100 text-green-700 rounded text-sm">
                     {{ session('success') }}
                 </div>
             @endif
 
-            <div class="bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden">
+            <div class="bg-white shadow rounded-lg p-4 sm:p-6">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            @foreach(['#','Fee Type','Month/Exam','Description','Amount','Paid','Due','Status','Action'] as $header)
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600 uppercase truncate">
-                                    {{ $header }}
-                                </th>
-                            @endforeach
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="px-4 py-2 text-left">Student</th>
+                            <th class="px-4 py-2 text-left">Class</th>
+                            <th class="px-4 py-2 text-left">Fee Type</th>
+                            <th class="px-4 py-2 text-left">Amount</th>
+                            <th class="px-4 py-2 text-left">Paid</th>
+                            <th class="px-4 py-2 text-left">Due</th>
+                            
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @php $total_due = 0; @endphp
+                    <tbody class="divide-y divide-gray-200">
                         @forelse($studentFees as $fee)
-                            @php
-                                $paid = $fee->payments->sum('amount_paid');
-                                $due = $fee->amount - $paid;
-                                $total_due += $due;
-                            @endphp
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-3 py-2">{{ $loop->iteration }}</td>
-                                <td class="px-3 py-2">{{ ucfirst($fee->fee_type) }}</td>
-                                <td class="px-3 py-2">{{ $fee->month ?? '-' }}/{{ $fee->exam_name ?? '-' }}</td>
-                                <td class="px-3 py-2">{{ $fee->description ?? '-' }}</td>
-                                <td class="px-3 py-2">{{ number_format($fee->amount,2) }}</td>
-                                <td class="px-3 py-2">{{ number_format($paid,2) }}</td>
-                                <td class="px-3 py-2">{{ number_format($due,2) }}</td>
-                                <td class="px-3 py-2">
-                                    @if($due == 0)
-                                        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-semibold">Paid</span>
-                                    @elseif($due < $fee->amount)
-                                        <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-semibold">Partial</span>
-                                    @else
-                                        <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full font-semibold">Pending</span>
-                                    @endif
+                            <tr>
+                                <td class="px-4 py-2">{{ $fee->student->student_name }}</td>
+                                <td class="px-4 py-2">{{ $fee->student->class->class_name }}</td>
+                                <td class="px-4 py-2">{{ ucfirst($fee->feeStructure->fee_type) }} 
+                                    @if($fee->feeStructure->month) ({{ $fee->feeStructure->month }}) @endif
                                 </td>
-                                <td class="px-3 py-2">
-                                    @if($due > 0)
-                                        <a href="{{ route('student_fee.pay', $fee->id) }}"
-                                           class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs">
-                                           Pay
-                                        </a>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
+                                <td class="px-4 py-2">${{ number_format($fee->amount, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($fee->amount_paid, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($fee->amount - $fee->amount_paid, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-6 text-center text-gray-500 font-medium">
-                                    No fees assigned yet.
+                                <td colspan="7" class="px-4 py-2 text-center text-gray-500">
+                                    No student fees found.
                                 </td>
                             </tr>
                         @endforelse
-                    </tbody>
-                    <tfoot>
+
+                        <!-- Total Row -->
                         <tr class="bg-gray-100 font-semibold">
-                            <td colspan="6" class="px-3 py-2 text-right">Total Due:</td>
-                            <td class="px-3 py-2">{{ number_format($total_due,2) }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="3" class="px-4 py-2 text-right">Total:</td>
+                            <td class="px-4 py-2">${{ number_format($studentFees->sum('amount'), 2) }}</td>
+                            <td class="px-4 py-2">${{ number_format($studentFees->sum('amount_paid'), 2) }}</td>
+                            <td class="px-4 py-2">${{ number_format($studentFees->sum(function($fee) { return $fee->amount - $fee->amount_paid; }), 2) }}</td>
+                            <td></td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
+
+                <div class="mt-4">
+                    {{ $studentFees->links() }} <!-- Pagination -->
+                </div>
             </div>
         </div>
     </div>

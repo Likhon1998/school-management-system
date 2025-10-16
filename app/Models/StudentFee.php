@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,15 +13,13 @@ class StudentFee extends Model
     protected $fillable = [
         'student_id',
         'fee_structure_id',
-        'amount_due',
+        'amount',
         'amount_paid',
-        'status', // pending, partial, paid
+        'status',
+        'due_date',
         'remarks',
     ];
 
-    /**
-     * Relationships
-     */
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
@@ -36,5 +33,18 @@ class StudentFee extends Model
     public function payments()
     {
         return $this->hasMany(FeePayment::class, 'student_fee_id');
+    }
+
+    // Update status based on amount_paid
+    public function updateStatus()
+    {
+        if ($this->amount_paid == 0) {
+            $this->status = 'pending';
+        } elseif ($this->amount_paid < $this->amount) {
+            $this->status = 'partial';
+        } else {
+            $this->status = 'paid';
+        }
+        $this->save();
     }
 }
