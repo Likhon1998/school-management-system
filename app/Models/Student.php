@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\StudentFee;
+use App\Models\FeeStructure;
 
 class Student extends Model
 {
@@ -45,10 +47,16 @@ class Student extends Model
     {
         parent::boot();
 
+        // Generate student_id automatically
         static::creating(function ($student) {
             if (!$student->student_id) {
                 $student->student_id = self::generateStudentId($student);
             }
+        });
+
+        // Assign fees automatically after student is created
+        static::created(function ($student) {
+            self::assignFees($student);
         });
     }
 
@@ -66,6 +74,30 @@ class Student extends Model
         $sequence = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
         return $year . $class . $sequence;
+    }
+
+    /**
+     * Automatically assign all fee structures of the student's class
+     */
+    private static function assignFees($student)
+    {
+        $feeStructures = FeeStructure::where('class_id', $student->class_id)
+            ->where('academic_year_id', $student->academic_year_id)
+            ->get();
+
+        foreach ($feeStructures as $feeStructure) {
+            StudentFee::firstOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'fee_structure_id' => $feeStructure->id,
+                ],
+                [
+                    'amount' => $feeStructure->amount,
+                    'status' => 'pending',
+                    'due_date' => $feeStructure->due_date,
+                ]
+            );
+        }
     }
 
     // Relationships
@@ -93,23 +125,26 @@ class Student extends Model
         return $this->hasMany(StudentAttendance::class);
     }
 
-    // New: Fee Payments relationship
     public function feePayments()
     {
         return $this->hasMany(FeePayment::class);
     }
 
-    // New: Total paid across all fee payments
+    public function studentFees()
+    {
+        return $this->hasMany(StudentFee::class);
+    }
+
     public function totalPaid()
     {
         return $this->feePayments()->sum('amount_paid');
     }
 
-    // New: Total due across all fee payments
     public function totalDue()
     {
-        return $this->feePayments->sum(function ($payment) {
-            return ($payment->feeStructure->amount ?? 0) - $payment->amount_paid;
+        return $this->studentFees->sum(function ($fee) {
+            $paid = $fee->payments()->sum('amount_paid');
+            return max($fee->amount - $paid, 0);
         });
     }
 }

@@ -14,12 +14,12 @@ class StudentFee extends Model
         'student_id',
         'fee_structure_id',
         'amount',
-        'amount_paid',
-        'status',
+        'status',       // pending / partial / paid
         'due_date',
         'remarks',
     ];
 
+    // Relationships
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
@@ -30,21 +30,51 @@ class StudentFee extends Model
         return $this->belongsTo(FeeStructure::class, 'fee_structure_id');
     }
 
+    // Corrected payments relationship
     public function payments()
     {
-        return $this->hasMany(FeePayment::class, 'student_fee_id');
+        // Only payments for this student and this fee structure
+        return $this->hasMany(FeePayment::class, 'student_id', 'student_id')
+                    ->where('fee_structure_id', $this->fee_structure_id);
     }
 
-    // Update status based on amount_paid
+    // Computed attributes
+    public function getPaidAmountAttribute()
+    {
+        // Sum the amount_paid of all related payments
+        return $this->payments()->sum('amount_paid');
+    }
+
+    public function getDueAmountAttribute()
+    {
+        return max($this->amount - $this->paid_amount, 0);
+    }
+
+    // Update status based on payments
     public function updateStatus()
     {
-        if ($this->amount_paid == 0) {
+        $paid = $this->paid_amount;
+
+        if ($paid == 0) {
             $this->status = 'pending';
-        } elseif ($this->amount_paid < $this->amount) {
+        } elseif ($paid < $this->amount) {
             $this->status = 'partial';
         } else {
             $this->status = 'paid';
         }
+
         $this->save();
+    }
+
+    // Scope for fully paid fees
+    public function scopePaid($query)
+    {
+        return $query->where('status', 'paid');
+    }
+
+    // Scope for pending or partial fees
+    public function scopePending($query)
+    {
+        return $query->whereIn('status', ['pending', 'partial']);
     }
 }

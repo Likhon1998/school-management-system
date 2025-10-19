@@ -51,7 +51,7 @@ class UserController extends Controller
             'status' => $request->status,
         ]);
 
-        // Handle photo
+        // Handle photo upload
         $photoName = null;
         if ($request->hasFile('photo')) {
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
@@ -100,7 +100,7 @@ class UserController extends Controller
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Update user
+        // Update user info
         $user->update([
             'username' => $request->username,
             'email' => $request->email,
@@ -112,17 +112,22 @@ class UserController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        // Photo handling
-        $photoName = $user->profile->photo;
+        // Ensure profile exists
+        if (!$user->profile) {
+            $user->profile()->create([]);
+        }
+
+        // Handle profile photo
+        $photoName = $user->profile->photo ?? null;
         if ($request->hasFile('photo')) {
-            if ($user->profile->photo && Storage::disk('public')->exists('profiles/'.$user->profile->photo)) {
-                Storage::disk('public')->delete('profiles/'.$user->profile->photo);
+            if ($photoName && Storage::disk('public')->exists('profiles/'.$photoName)) {
+                Storage::disk('public')->delete('profiles/'.$photoName);
             }
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
             $request->photo->storeAs('public/profiles', $photoName);
         }
 
-        // Update profile
+        // Update or create profile
         $user->profile->update([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
@@ -137,20 +142,22 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
 
-    // Delete user
+    // Delete user safely
     public function destroy(User $user)
     {
-        if ($user->profile->photo && Storage::disk('public')->exists('profiles/'.$user->profile->photo)) {
-            Storage::disk('public')->delete('profiles/'.$user->profile->photo);
+        if ($user->profile) {
+            if ($user->profile->photo && Storage::disk('public')->exists('profiles/'.$user->profile->photo)) {
+                Storage::disk('public')->delete('profiles/'.$user->profile->photo);
+            }
+            $user->profile->delete();
         }
 
-        $user->profile->delete();
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
     }
 
-    // Show user details
+    // Show single user
     public function show(User $user)
     {
         $user->load('profile');
