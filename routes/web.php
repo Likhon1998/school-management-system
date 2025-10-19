@@ -38,6 +38,7 @@ Route::get('/dashboard', function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -61,7 +62,7 @@ Route::middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Academic & User Management Routes (Admin)
+| Academic & User Management Routes
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
@@ -84,15 +85,28 @@ Route::middleware('auth')->group(function () {
     Route::resource('fee_payments', FeePaymentController::class)->except(['edit']);
     Route::resource('expenses', ExpenseController::class);
 
-    // Admin: Student Fee CRUD (except index/show)
+    // Fee Payment Edit/Update for a specific student
+    Route::get('students/{student}/fee_payments/edit', [FeePaymentController::class, 'editMultiple'])->name('fee_payments.editMultiple');
+    Route::put('students/{student}/fee_payments', [FeePaymentController::class, 'updateMultiple'])->name('fee_payments.updateMultiple');
+
+    // Student ID Card / Info
+    Route::get('/students/{student}/id-card/download', [StudentController::class, 'downloadIdCard'])->name('students.idcard.download');
+    Route::get('/students/next-id', [StudentController::class, 'getNextStudentId'])->name('students.nextId');
+    Route::get('/students/{student}/student_info', [StudentController::class, 'downloadPdf'])->name('students.student_info');
+
+    // Student Fee Payment routes (create/update/delete) - keep resource but exclude index/show
     Route::resource('student_fees', StudentFeeController::class)->except(['index', 'show']);
     Route::post('/student-fees/{studentFee}/pay', [StudentFeeController::class, 'updatePayment'])->name('student_fees.updatePayment');
     Route::delete('/student-fees/{studentFee}', [StudentFeeController::class, 'destroy'])->name('student_fees.destroy');
+
+    // Only index and history GET routes for /student_fees
+    Route::get('/student_fees', [StudentFeeController::class, 'index'])->name('student_fees.index');
+    Route::get('/student_fees/history', [StudentFeeController::class, 'history'])->name('student_fees.history');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Student Dashboard & Fee Routes (Student)
+| Student-specific routes
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->prefix('student')->group(function () {
@@ -102,10 +116,12 @@ Route::middleware(['auth'])->prefix('student')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| AJAX routes (student dues)
+| AJAX Routes (Student dues)
 |--------------------------------------------------------------------------
 */
-Route::get('fee_payments/student-dues/{student}', [FeePaymentController::class, 'getStudentTotalDues'])->name('fee_payments.studentTotalDues');
-Route::post('fee_payments/store-total', [FeePaymentController::class, 'storeTotal'])->name('fee_payments.storeTotal');
+Route::get('fee_payments/student-dues/{student}', [FeePaymentController::class, 'getStudentTotalDues'])
+    ->name('fee_payments.studentTotalDues');
+Route::post('fee_payments/store-total', [FeePaymentController::class, 'storeTotal'])
+    ->name('fee_payments.storeTotal');
 
 require __DIR__ . '/auth.php';
