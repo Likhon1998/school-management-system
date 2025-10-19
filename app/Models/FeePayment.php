@@ -20,6 +20,8 @@ class FeePayment extends Model
         'receipt_number',
         'status',
         'remarks',
+        'due_amount',   // new field for remaining due
+        'receipt_file', // optional: upload receipt evidence
     ];
 
     /**
@@ -36,5 +38,48 @@ class FeePayment extends Model
     public function feeStructure()
     {
         return $this->belongsTo(FeeStructure::class, 'fee_structure_id');
+    }
+
+    /**
+     * Boot method to auto-calculate status and due
+     */
+    protected static function booted()
+    {
+        static::creating(function ($payment) {
+            $totalFee = $payment->feeStructure->amount ?? 0;
+            $payment->due_amount = $totalFee - $payment->amount_paid;
+
+            if ($payment->amount_paid == 0) {
+                $payment->status = 'pending';
+            } elseif ($payment->amount_paid < $totalFee) {
+                $payment->status = 'partial';
+            } else {
+                $payment->status = 'paid';
+                $payment->due_amount = 0;
+            }
+        });
+
+        static::updating(function ($payment) {
+            $totalFee = $payment->feeStructure->amount ?? 0;
+            $payment->due_amount = $totalFee - $payment->amount_paid;
+
+            if ($payment->amount_paid == 0) {
+                $payment->status = 'pending';
+            } elseif ($payment->amount_paid < $totalFee) {
+                $payment->status = 'partial';
+            } else {
+                $payment->status = 'paid';
+                $payment->due_amount = 0;
+            }
+        });
+    }
+
+    /**
+     * Accessor to get remaining due directly
+     */
+    public function getRemainingDueAttribute()
+    {
+        $totalFee = $this->feeStructure->amount ?? 0;
+        return max($totalFee - $this->amount_paid, 0);
     }
 }

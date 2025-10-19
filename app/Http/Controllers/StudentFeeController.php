@@ -4,57 +4,64 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\StudentFee;
+use App\Models\FeePayment;
 
 class StudentFeeController extends Controller
 {
     /**
-     * Display a listing of student fees.
-     * Superadmin sees all, student sees only own fees, others forbidden.
-     * Calculates total dues.
+     * Display a listing of student fees with actual dues.
      */
     public function index(Request $request)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $query = StudentFee::with(['student', 'feeStructure'])
-            ->whereNotNull('fee_structure_id'); // Only fees created via fee structure
+    $query = StudentFee::with(['student', 'student.class', 'feeStructure']);
 
-        if ($user->role === 'superadmin') {
-            // Optional filters
-            if ($request->filled('class_id')) {
-                $query->whereHas('student', function ($q) use ($request) {
-                    $q->where('class_id', $request->class_id);
-                });
-            }
-
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-        } elseif ($user->role === 'student') {
-            // Show only logged-in student's fees
-            $query->where('student_id', $user->id);
-        } else {
-            abort(403, 'Unauthorized access');
+    if ($user->role === 'superadmin') {
+        if ($request->filled('class_id')) {
+            $query->whereHas('student', fn($q) => $q->where('class_id', $request->class_id));
         }
-
-        // Fetch paginated fees
-        $studentFees = $query->orderBy('due_date', 'asc')->paginate(20);
-
-        // Calculate total dues for the displayed fees
-        $totalDue = $query->sum(\DB::raw('amount - amount_paid'));
-
-        return view('student_fees.index', compact('studentFees', 'totalDue'));
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+    } elseif ($user->role === 'student') {
+        $query->whereHas('student', fn($q) => $q->where('user_id', $user->id));
+    } else {
+        abort(403, 'Unauthorized access');
     }
 
+    // Use paginate instead of get
+    $studentFees = $query->orderBy('due_date', 'asc')->paginate(20);
+
+    // Transform the items in the paginator
+    $studentFees->getCollection()->transform(function($fee) {
+        $paid = FeePayment::where('student_id', $fee->student_id)
+                          ->where('fee_structure_id', $fee->fee_structure_id)
+                          ->sum('amount_paid');
+        $fee->paid_amount = $paid;
+        $fee->due_amount = max($fee->amount - $paid, 0);
+        return $fee;
+    });
+
+    $totalAmount = $studentFees->getCollection()->sum('amount');
+    $totalPaid = $studentFees->getCollection()->sum('paid_amount');
+    $totalDue = $studentFees->getCollection()->sum('due_amount');
+
+    return view('student_fees.index', compact('studentFees', 'totalAmount', 'totalPaid', 'totalDue'));
+}
+
+
     /**
-     * Show a specific student fee (details + payment history).
+     * Show a specific student fee (details + payment history)
      */
     public function show(StudentFee $studentFee)
     {
         $user = auth()->user();
+        $isSuperadmin = $user->role === 'superadmin';
+        $isOwner = $studentFee->student && $studentFee->student->user_id === $user->id;
 
-        if ($user->role === 'superadmin' || ($user->role === 'student' && $studentFee->student_id === $user->id)) {
-            $studentFee->load(['student', 'feeStructure', 'payments']);
+        if ($isSuperadmin || $isOwner) {
+            $studentFee->load(['student', 'student.class', 'feeStructure', 'payments']);
             return view('student_fees.show', compact('studentFee'));
         }
 
@@ -62,13 +69,11 @@ class StudentFeeController extends Controller
     }
 
     /**
-     * Update a student fee payment (partial/full).
-     * Only superadmin can update payments.
+     * Update a student fee payment (partial/full). Superadmin only.
      */
     public function updatePayment(Request $request, StudentFee $studentFee)
     {
         $user = auth()->user();
-
         if ($user->role !== 'superadmin') {
             abort(403, 'Unauthorized access');
         }
@@ -77,20 +82,14 @@ class StudentFeeController extends Controller
             'amount_paid' => 'required|numeric|min:0',
         ]);
 
-        // Add payment amount
+        // Add payment and prevent overpayment
         $studentFee->amount_paid += $request->amount_paid;
-
-        // Update status
-        if ($studentFee->amount_paid >= $studentFee->amount) {
-            $studentFee->status = 'paid';
-            $studentFee->amount_paid = $studentFee->amount; // Prevent overpayment
-        } elseif ($studentFee->amount_paid > 0) {
-            $studentFee->status = 'partial';
-        } else {
-            $studentFee->status = 'pending';
+        if ($studentFee->amount_paid > $studentFee->amount) {
+            $studentFee->amount_paid = $studentFee->amount;
         }
 
-        $studentFee->save();
+        // Update status automatically using model method
+        $studentFee->updateStatus();
 
         return redirect()->back()->with('success', 'Payment updated successfully.');
     }
@@ -101,7 +100,6 @@ class StudentFeeController extends Controller
     public function destroy(StudentFee $studentFee)
     {
         $user = auth()->user();
-
         if ($user->role !== 'superadmin') {
             abort(403, 'Unauthorized access');
         }
@@ -116,19 +114,25 @@ class StudentFeeController extends Controller
     public function studentDashboard()
     {
         $user = auth()->user();
-
         if ($user->role !== 'student') {
             abort(403, 'Unauthorized access');
         }
 
-        $studentFees = StudentFee::with('feeStructure')
-                ->where('student_id', $user->id)
-                ->orderBy('due_date', 'asc')
-                ->paginate(10);
+        $studentFees = StudentFee::with(['feeStructure', 'student', 'student.class'])
+            ->whereHas('student', fn($q) => $q->where('user_id', $user->id))
+            ->orderBy('due_date', 'asc')
+            ->paginate(10);
 
-        // Total dues for this student
-        $totalDue = StudentFee::where('student_id', $user->id)
-                        ->sum(\DB::raw('amount - amount_paid'));
+        $studentFees->getCollection()->transform(function($fee) {
+            $paid = FeePayment::where('student_id', $fee->student_id)
+                              ->where('fee_structure_id', $fee->fee_structure_id)
+                              ->sum('amount_paid');
+            $fee->paid_amount = $paid;
+            $fee->due_amount = max($fee->amount - $paid, 0);
+            return $fee;
+        });
+
+        $totalDue = $studentFees->getCollection()->sum('due_amount');
 
         return view('student_fees.dashboard_fees', compact('studentFees', 'totalDue'));
     }

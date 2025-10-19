@@ -113,5 +113,19 @@ Route::middleware(['auth'])->group(function () {
     // View/Pay specific fee
     Route::get('/student/fees/{studentFee}', [StudentFeeController::class, 'show'])->name('student_fees.show');
 });
+// Fetch total dues for a student (AJAX)
+Route::get('fee_payments/student-dues/{student}', [FeePaymentController::class, 'getStudentTotalDues'])
+    ->name('fee_payments.studentTotalDues');
+Route::post('fee_payments/store-total', [FeePaymentController::class, 'storeTotal'])->name('fee_payments.storeTotal');
+Route::middleware(['auth'])->group(function () {
+    Route::get('student_fees', [StudentFeeController::class, 'index'])->name('student_fees.index');
+    Route::get('student_fees/history', [StudentFeeController::class, 'history'])->name('student_fees.history');
+    Route::get('student_fees/{studentFee}', [StudentFeeController::class, 'show'])->name('student_fees.show');
+});
+Route::get('student_fees/assign-to-payments', [StudentFeeController::class, 'assignDuesToFeePayments'])
+    ->name('student_fees.assign_to_payments')
+    ->middleware('auth');
+
+
 
 require __DIR__ . '/auth.php';

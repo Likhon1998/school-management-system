@@ -34,18 +34,17 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Student Name</label>
                             <input type="text" name="student_name" value="{{ old('student_name') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm" required>
                         </div>
 
-                        <!-- Student ID (auto/manual) -->
+                        <!-- Student ID (auto-generated) -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Student ID</label>
-                            <input type="text" name="student_id" value="{{ old('student_id') }}" 
-                            placeholder="Auto-generated or manual" 
-                            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                            <input type="text" id="student_id" name="student_id" value="{{ old('student_id') }}" 
+                                   placeholder="Auto-generated" 
+                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm" readonly>
                             <small class="text-gray-500 text-xs">Auto-generated on page load</small>
                         </div>
-                      
 
                         <!-- Government ID -->
                         <div>
@@ -58,14 +57,14 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Admission Number</label>
                             <input type="text" name="admission_number" value="{{ old('admission_number') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm" required>
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm" required>
                         </div>
 
                         <!-- Admission Date -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Admission Date</label>
                             <input type="date" name="admission_date" value="{{ old('admission_date') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm" required>
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm" required>
                         </div>
 
                         <!-- Class -->
@@ -111,28 +110,28 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Roll Number</label>
                             <input type="number" name="roll_number" value="{{ old('roll_number') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
 
                         <!-- Blood Group -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Blood Group</label>
                             <input type="text" name="blood_group" value="{{ old('blood_group') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
 
                         <!-- Religion -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Religion</label>
                             <input type="text" name="religion" value="{{ old('religion') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
 
                         <!-- Date of Birth -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Date of Birth</label>
                             <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
 
                         <!-- Gender -->
@@ -164,7 +163,19 @@
                             <input type="email" name="email" value="{{ old('email') }}" 
                                    class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
+                        <!-- Password -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                            <input type="password" name="password" required
+                                class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                        </div>
 
+                        <!-- Confirm Password -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Confirm Password</label>
+                            <input type="password" name="password_confirmation" required
+                                class="w-full border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-indigo-200 text-sm">
+                        </div>
                         <!-- Parent Email -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Parent Email</label>
@@ -185,59 +196,30 @@
                             <textarea name="medical_info" class="w-full border-gray-300 rounded-lg shadow-sm text-sm" rows="2">{{ old('medical_info') }}</textarea>
                         </div>
 
-                        <!-- Father's Name -->
+                        <!-- Parent/Guardian Info -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Father's Name</label>
-                            <input type="text" name="father_name" value="{{ old('father_name') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
+                            <input type="text" name="father_name" value="{{ old('father_name') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
-
-                        <!-- Father Phone -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Father's Phone</label>
-                            <input type="text" name="father_phone" value="{{ old('father_phone') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
+                            <input type="text" name="father_phone" value="{{ old('father_phone') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
-
-                        <!-- Mother Name -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Mother's Name</label>
-                            <input type="text" name="mother_name" value="{{ old('mother_name') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
+                            <input type="text" name="mother_name" value="{{ old('mother_name') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
-
-                        <!-- Mother Phone -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Mother's Phone</label>
-                            <input type="text" name="mother_phone" value="{{ old('mother_phone') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
+                            <input type="text" name="mother_phone" value="{{ old('mother_phone') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
-
-                        <!-- Guardian Name -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Guardian Name</label>
-                            <input type="text" name="guardian_name" value="{{ old('guardian_name') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
+                            <input type="text" name="guardian_name" value="{{ old('guardian_name') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
-
-                        <!-- Guardian Phone -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Guardian Phone</label>
-                            <input type="text" name="guardian_phone" value="{{ old('guardian_phone') }}" 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
-                        </div>
-
-                        <!-- Created By -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Created By</label>
-                            <select name="user_id" class="w-full border-gray-300 rounded-lg shadow-sm text-sm" required>
-                                <option value="">-- Select Creator --</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                        {{ $user->username }} - {{ $user->email }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            <input type="text" name="guardian_phone" value="{{ old('guardian_phone') }}" class="w-full border-gray-300 rounded-lg shadow-sm text-sm">
                         </div>
 
                         <!-- Status -->
@@ -268,18 +250,19 @@
 
         </div>
     </div>
+
     @push('scripts')
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Fetch next student ID via AJAX
-        fetch("{{ route('students.nextId') }}")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('student_id').value = data.student_id;
-            })
-            .catch(error => console.error('Error fetching Student ID:', error));
-    });
-</script>
-@endpush
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Fetch next student ID via AJAX
+            fetch("{{ route('students.nextId') }}")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('student_id').value = data.student_id;
+                })
+                .catch(error => console.error('Error fetching Student ID:', error));
+        });
+    </script>
+    @endpush
 
 </x-app-layout>

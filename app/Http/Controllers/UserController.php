@@ -6,10 +6,11 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    // Show all users
+    // List all users
     public function index()
     {
         $users = User::with('profile')->paginate(10);
@@ -41,6 +42,7 @@ class UserController extends Controller
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // Create user
         $user = User::create([
             'username' => $request->username,
             'email' => $request->email,
@@ -49,10 +51,11 @@ class UserController extends Controller
             'status' => $request->status,
         ]);
 
+        // Handle photo
         $photoName = null;
         if ($request->hasFile('photo')) {
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
-            $request->photo->storeAs('public/profiles', $photoName); // store in storage/app/public/profiles
+            $request->photo->storeAs('public/profiles', $photoName);
         }
 
         // Create profile
@@ -65,7 +68,7 @@ class UserController extends Controller
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
             'national_id' => $request->national_id,
-            'photo' => $photoName, // only filename
+            'photo' => $photoName,
         ]);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -97,6 +100,7 @@ class UserController extends Controller
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // Update user
         $user->update([
             'username' => $request->username,
             'email' => $request->email,
@@ -104,22 +108,21 @@ class UserController extends Controller
             'status' => $request->status,
         ]);
 
-        if($request->password){
+        if ($request->password) {
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        // Handle photo upload
-        $photoName = $user->profile->photo; 
+        // Photo handling
+        $photoName = $user->profile->photo;
         if ($request->hasFile('photo')) {
-            
-            if ($user->profile->photo && file_exists(storage_path('app/public/profiles/'.$user->profile->photo))) {
-                unlink(storage_path('app/public/profiles/'.$user->profile->photo));
+            if ($user->profile->photo && Storage::disk('public')->exists('profiles/'.$user->profile->photo)) {
+                Storage::disk('public')->delete('profiles/'.$user->profile->photo);
             }
-
             $photoName = time() . '_' . $request->photo->getClientOriginalName();
-            $request->photo->storeAs('public/profiles', $photoName); 
+            $request->photo->storeAs('public/profiles', $photoName);
         }
 
+        // Update profile
         $user->profile->update([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
@@ -128,7 +131,7 @@ class UserController extends Controller
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
             'national_id' => $request->national_id,
-            'photo' => $photoName, // only filename
+            'photo' => $photoName,
         ]);
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
@@ -137,9 +140,8 @@ class UserController extends Controller
     // Delete user
     public function destroy(User $user)
     {
-        // Delete photo if exists
-        if ($user->profile->photo && file_exists(storage_path('app/public/profiles/'.$user->profile->photo))) {
-            unlink(storage_path('app/public/profiles/'.$user->profile->photo));
+        if ($user->profile->photo && Storage::disk('public')->exists('profiles/'.$user->profile->photo)) {
+            Storage::disk('public')->delete('profiles/'.$user->profile->photo);
         }
 
         $user->profile->delete();
@@ -148,10 +150,10 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
     }
 
-    // Show single user
-    public function show($id)
+    // Show user details
+    public function show(User $user)
     {
-        $user = User::with('profile')->findOrFail($id);
+        $user->load('profile');
         return view('users.show', compact('user'));
     }
 }

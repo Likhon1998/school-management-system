@@ -8,10 +8,9 @@ use App\Models\ClassModel;
 use App\Models\Section;
 use App\Models\AcademicYear;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-
-
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class StudentController extends Controller
 {
@@ -37,9 +36,6 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'student_id' => 'nullable|string|unique:students,student_id',
-            'government_id' => 'nullable|string|unique:students,government_id',
             'student_name' => 'required|string|max:100',
             'admission_number' => 'required|string|unique:students,admission_number',
             'admission_date' => 'required|date',
@@ -54,10 +50,9 @@ class StudentController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:255',
             'photo' => 'nullable|image|max:2048',
-            'email' => 'nullable|email|unique:students,email',
+            'email' => 'required|email|unique:users,email|unique:students,email',
             'parent_email' => 'nullable|email|unique:students,parent_email',
             'emergency_contact' => 'nullable|string|max:15',
-            'medical_info' => 'nullable|string',
             'father_name' => 'nullable|string|max:100',
             'father_phone' => 'nullable|string|max:15',
             'father_occupation' => 'nullable|string|max:100',
@@ -66,9 +61,20 @@ class StudentController extends Controller
             'guardian_name' => 'nullable|string|max:100',
             'guardian_phone' => 'nullable|string|max:15',
             'status' => 'required|in:active,inactive,transferred',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        // Create User first
+        $user = User::create([
+            'username' => $request->email,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'student',
+            'status' => $request->status,
         ]);
 
         $data = $request->all();
+        $data['user_id'] = $user->id;
 
         // Auto-generate student_id if empty
         if (empty($data['student_id'])) {
@@ -84,7 +90,7 @@ class StudentController extends Controller
 
         Student::create($data);
 
-        return redirect()->route('students.index')->with('success', 'Student created successfully.');
+        return redirect()->route('students.index')->with('success', 'Student and user account created successfully.');
     }
 
     // Show edit form
@@ -102,9 +108,6 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'student_id' => 'nullable|string|unique:students,student_id,' . $student->id,
-            'government_id' => 'nullable|string|unique:students,government_id,' . $student->id,
             'student_name' => 'required|string|max:100',
             'admission_number' => 'required|string|unique:students,admission_number,' . $student->id,
             'admission_date' => 'required|date',
@@ -119,10 +122,9 @@ class StudentController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:255',
             'photo' => 'nullable|image|max:2048',
-            'email' => 'nullable|email|unique:students,email,' . $student->id,
+            'email' => 'required|email|unique:users,email,' . $student->user_id . '|unique:students,email,' . $student->id,
             'parent_email' => 'nullable|email|unique:students,parent_email,' . $student->id,
             'emergency_contact' => 'nullable|string|max:15',
-            'medical_info' => 'nullable|string',
             'father_name' => 'nullable|string|max:100',
             'father_phone' => 'nullable|string|max:15',
             'father_occupation' => 'nullable|string|max:100',
@@ -131,14 +133,22 @@ class StudentController extends Controller
             'guardian_name' => 'nullable|string|max:100',
             'guardian_phone' => 'nullable|string|max:15',
             'status' => 'required|in:active,inactive,transferred',
+            'password' => 'nullable|min:6|confirmed',
         ]);
 
         $data = $request->all();
 
-        if (empty($data['student_id'])) {
-            $data['student_id'] = $student->student_id ?? 'STU-' . str_pad($student->id, 4, '0', STR_PAD_LEFT);
+        // Update User
+        $userData = [
+            'email' => $request->email,
+            'status' => $request->status,
+        ];
+        if ($request->password) {
+            $userData['password'] = Hash::make($request->password);
         }
+        $student->user()->update($userData);
 
+        // Handle photo upload
         if ($request->hasFile('photo')) {
             if ($student->photo) {
                 Storage::disk('public')->delete($student->photo);
@@ -148,7 +158,7 @@ class StudentController extends Controller
 
         $student->update($data);
 
-        return redirect()->route('students.index')->with('success', 'Student updated successfully.');
+        return redirect()->route('students.index')->with('success', 'Student and user account updated successfully.');
     }
 
     // Delete student
@@ -158,35 +168,21 @@ class StudentController extends Controller
             Storage::disk('public')->delete($student->photo);
         }
 
+        // Delete associated user
+        if ($student->user) {
+            $student->user->delete();
+        }
+
         $student->delete();
-        return redirect()->route('students.index')->with('success', 'Student deleted successfully.');
+        return redirect()->route('students.index')->with('success', 'Student and user account deleted successfully.');
     }
 
-    // Show ID Card modal
-    public function showIdCard(Student $student)
+    // Show student details
+    public function show(Student $student)
     {
-        return view('students.id_card_modal', compact('student'));
+        $student->load(['user', 'class', 'section', 'academicYear']);
+        return view('students.show', compact('student'));
     }
-
-    // Download ID Card PDF
-    public function downloadIdCard($id)
-    {
-        $student = Student::with(['class','section','academicYear'])->findOrFail($id);
-
-        $pdf = Pdf::loadView('students.id_card', compact('student'))
-                ->setPaper([0, 0,  300, 340], 'landscape'); 
-
-        return $pdf->download($student->student_name . '_id_card.pdf');
-    }
-    
-    public function downloadPdf(Student $student)
-    {
-        $pdf = PDF::loadView('students.student_info', compact('student'))
-                ->setPaper('A4', 'portrait'); 
-
-        return $pdf->download($student->student_name . '_Info.pdf');
-    }
-
 
     // AJAX: Get next Student ID
     public function getNextStudentId()
@@ -196,12 +192,5 @@ class StudentController extends Controller
         $nextId = 'STU-' . str_pad($number, 4, '0', STR_PAD_LEFT);
 
         return response()->json(['student_id' => $nextId]);
-    }
-
-    // Show student details
-    public function show(Student $student)
-    {
-        $student->load(['user', 'class', 'section', 'academicYear']);
-        return view('students.show', compact('student'));
     }
 }

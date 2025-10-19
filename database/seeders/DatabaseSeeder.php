@@ -66,6 +66,7 @@ class DatabaseSeeder extends Seeder
             'events'          => ['view','create','edit','delete'],
             // -------- Reports & Analytics --------
             'reports'         => ['view'],
+            'student_fees'     => ['view','create','edit','delete','show'],
         ];
 
         // Build/create permissions

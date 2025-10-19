@@ -2,18 +2,8 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h2 class="font-semibold text-lg text-gray-700 leading-tight">
-                Student Fees
+                Student Fees (Pending Dues)
             </h2>
-            <div class="flex gap-2">
-                <a href="{{ route('fee_structures.index') }}" 
-                   class="px-3 py-1.5 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm">
-                   ← Back to Fee Structures
-                </a>
-                <a href="{{ route('student_fees.index') }}" 
-                   class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                   Payment History
-                </a>
-            </div>
         </div>
     </x-slot>
 
@@ -35,37 +25,42 @@
                             <th class="px-4 py-2 text-left">Amount</th>
                             <th class="px-4 py-2 text-left">Paid</th>
                             <th class="px-4 py-2 text-left">Due</th>
-                            
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($studentFees as $fee)
+                            @if($fee->due_amount > 0)
                             <tr>
-                                <td class="px-4 py-2">{{ $fee->student->student_name }}</td>
-                                <td class="px-4 py-2">{{ $fee->student->class->class_name }}</td>
-                                <td class="px-4 py-2">{{ ucfirst($fee->feeStructure->fee_type) }} 
-                                    @if($fee->feeStructure->month) ({{ $fee->feeStructure->month }}) @endif
+                                <td class="px-4 py-2">{{ $fee->student->student_name ?? 'N/A' }}</td>
+                                <td class="px-4 py-2">{{ $fee->student->class->class_name ?? 'N/A' }}</td>
+                                <td class="px-4 py-2">
+                                    {{ ucfirst($fee->feeStructure->fee_type ?? 'N/A') }}
+                                    @if(!empty($fee->feeStructure->month))
+                                        ({{ $fee->feeStructure->month }})
+                                    @endif
                                 </td>
                                 <td class="px-4 py-2">${{ number_format($fee->amount, 2) }}</td>
-                                <td class="px-4 py-2">${{ number_format($fee->amount_paid, 2) }}</td>
-                                <td class="px-4 py-2">${{ number_format($fee->amount - $fee->amount_paid, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($fee->paid_amount, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($fee->due_amount, 2) }}</td>
                             </tr>
+                            @endif
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-2 text-center text-gray-500">
-                                    No student fees found.
+                                <td colspan="6" class="px-4 py-2 text-center text-gray-500">
+                                    No pending fees.
                                 </td>
                             </tr>
                         @endforelse
 
                         <!-- Total Row -->
-                        <tr class="bg-gray-100 font-semibold">
-                            <td colspan="3" class="px-4 py-2 text-right">Total:</td>
-                            <td class="px-4 py-2">${{ number_format($studentFees->sum('amount'), 2) }}</td>
-                            <td class="px-4 py-2">${{ number_format($studentFees->sum('amount_paid'), 2) }}</td>
-                            <td class="px-4 py-2">${{ number_format($studentFees->sum(function($fee) { return $fee->amount - $fee->amount_paid; }), 2) }}</td>
-                            <td></td>
-                        </tr>
+                        @if($studentFees->where('due_amount', '>', 0)->count() > 0)
+                            <tr class="bg-gray-100 font-semibold">
+                                <td colspan="3" class="px-4 py-2 text-right">Total:</td>
+                                <td class="px-4 py-2">${{ number_format($totalAmount, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($totalPaid, 2) }}</td>
+                                <td class="px-4 py-2">${{ number_format($totalDue, 2) }}</td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
 

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,9 +10,6 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'username',
         'email',
@@ -22,17 +18,11 @@ class User extends Authenticatable
         'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
@@ -43,5 +33,13 @@ class User extends Authenticatable
     public function profile()
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * One-to-one relationship with student
+     */
+    public function student()
+    {
+        return $this->hasOne(Student::class, 'user_id');
     }
 }
