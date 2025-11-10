@@ -94,24 +94,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/next-id', [StudentController::class, 'getNextStudentId'])->name('students.nextId');
     Route::get('/students/{student}/student_info', [StudentController::class, 'downloadPdf'])->name('students.student_info');
 
-    // Student Fee Payment routes (create/update/delete) - keep resource but exclude index/show
+    /*
+    |--------------------------------------------------------------------------
+    | Student Fee Payment Routes
+    |--------------------------------------------------------------------------
+    */
     Route::resource('student_fees', StudentFeeController::class)->except(['index', 'show']);
     Route::post('/student-fees/{studentFee}/pay', [StudentFeeController::class, 'updatePayment'])->name('student_fees.updatePayment');
-    Route::delete('/student-fees/{studentFee}', [StudentFeeController::class, 'destroy'])->name('student_fees.destroy');
-
-    // Only index and history GET routes for /student_fees
     Route::get('/student_fees', [StudentFeeController::class, 'index'])->name('student_fees.index');
     Route::get('/student_fees/history', [StudentFeeController::class, 'history'])->name('student_fees.history');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Student-specific routes
+| Student-specific routes (renamed to avoid duplicates)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->prefix('student')->group(function () {
-    Route::get('/fees', [StudentFeeController::class, 'index'])->name('student_fees.index'); // Pending dues
-    Route::get('/fees/history', [StudentFeeController::class, 'history'])->name('student_fees.history'); // Payment history
+    Route::get('/fees', [StudentFeeController::class, 'index'])->name('student_portal.fees.index'); // Pending dues
+    Route::get('/fees/history', [StudentFeeController::class, 'history'])->name('student_portal.fees.history'); // Payment history
 });
 
 /*

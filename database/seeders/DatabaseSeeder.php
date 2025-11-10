@@ -86,7 +86,7 @@ class DatabaseSeeder extends Seeder
         // Ensure Super Admin user exists (using username instead of name)
         $user = User::firstOrCreate(
             ['email' => 'superadmin@gmail.com'], // Ensure email is unique
-            ['username' => 'superadmin', 'password' => bcrypt('123456789')] // Use 'username' instead of 'name'
+            ['username' => 'superadmin', 'password' => bcrypt('12345678')] // Use 'username' instead of 'name'
         );
 
         // Assign the 'superadmin' role to the user
